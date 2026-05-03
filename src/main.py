@@ -3,7 +3,9 @@ from fastapi import FastAPI
 
 from src.api.v1.routes.paraphrase import router as paraphrase_router
 from src.api.v1.routes.users import router as user_router
-from src.core.config import settings
+from src.core.config import get_settings
+
+settings = get_settings()
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -11,8 +13,8 @@ app = FastAPI(
     version=settings.APP_VERSION
 )
 
-app.include_router(user_router, prefix=f"/api{settings.APP_API_VERSION}")
 app.include_router(paraphrase_router, prefix=f"/api/{settings.APP_API_VERSION}")
+app.include_router(user_router, prefix=f"/api{settings.APP_API_VERSION}")
 
 
 @app.get("/")
