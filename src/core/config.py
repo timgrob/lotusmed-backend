@@ -1,5 +1,7 @@
 from functools import lru_cache
+from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,8 +15,11 @@ class Settings(BaseSettings):
     APP_RELOAD: bool = False
     APP_API_VERSION: str = "/v1"
 
+    OPENAI_API_KEY: SecretStr
+    ANTROPIC_API_KEY: SecretStr
+
     model_config = SettingsConfigDict(
-        env_file="../../.env",
+        env_file=Path(__file__).parent.parent.parent / ".env",
         env_ignore_empty=True,
         extra="ignore",
     )
