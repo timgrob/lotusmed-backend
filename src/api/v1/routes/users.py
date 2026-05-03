@@ -19,13 +19,12 @@ def create_user(payload: UserCreate) -> User:
 
 @router.put("/{user_id}", response_model=User)
 def update_user(user_id: UUID, payload: UserUpdate) -> User:
-    current_user = USERS_DB.get(user_id)
-    if current_user is None:
+    if not (current_user := USERS_DB.get(user_id)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     update_data = payload.model_dump(exclude_unset=True)
     updated_user = current_user.model_copy(update=update_data)
-    updated_user.updated_at = datetime.utcnow()
+    updated_user.updated_at = datetime.now(datetime.UTC)
     USERS_DB[user_id] = updated_user
     return updated_user
 
