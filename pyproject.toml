@@ -7,3 +7,36 @@ requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.136.1",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+    "pre-commit>=4.3.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+exclude = [
+    ".git",
+    ".ruff_cache",
+    ".venv",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = []
+fixable = ["ALL"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
