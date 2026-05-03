@@ -9,7 +9,12 @@ class Settings(BaseSettings):
     APP_PORT: int = 8000
     APP_HOST: str = "0.0.0.0"
     APP_RELOAD: bool = False
-    APP_RELOAD_DELAY: int = 0.5
-    APP_RELOAD_MAX_DELAY: int = 10.0
-    APP_RELOAD_MAX_RETRIES: int = 3
     APP_API_VERSION: str = "/v1"
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = True
+
+
+settings = Settings()
