@@ -13,7 +13,11 @@ class Settings(BaseSettings):
     APP_RELOAD: bool = False
     APP_API_VERSION: str = "/v1"
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(
+        env_file="../../.env",
+        env_ignore_empty=True,
+        extra="ignore",
+    )
 
 
 @lru_cache
