@@ -108,7 +108,7 @@ Make sure to use correct markdown syntax so that the bullet points render correc
 Please make sure to have at least one space on a new line before the star that marks
 the bullet point.
 
-ALWAYS MAKE SURE TAHT:
+ALWAYS MAKE SURE THAT:
 - Preserve all medical facts, warnings, numbers, doses, dates, medication names, and uncertainty.
 - Explain medical terms briefly when they are important.
 - Do not add new diagnoses, advice, or reassurance that is not present in the source text.
