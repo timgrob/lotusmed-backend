@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     APP_API_VERSION: str = "/v1"
 
     OPENAI_API_KEY: SecretStr
+    OPENAI_MODEL_VERSION: str = "gpt-5.5"
     ANTROPIC_API_KEY: SecretStr
+    ANTROPIC_MODEL_VERSION: str = "opus-4.7"
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent.parent / ".env",
