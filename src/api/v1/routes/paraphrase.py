@@ -96,17 +96,14 @@ async def generate_image(
             model=settings.OPENAI_IMAGE_MODEL_VERSION,
             prompt=prompt
         )
+        image_base64 = response.data[0].b64_json
     except OpenAIError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Failed to generate medical image",
         ) from exc
 
-    image_base64 = response.data[0].b64_json
-    # TODO: remove image_bytes variable when write function is omitted
-    image_bytes = base64.b64decode(image_base64) 
-
-    if not image_bytes:
+    if not image_base64:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="OpenAI did not return a valid image",
@@ -114,6 +111,6 @@ async def generate_image(
 
     # Save the image to a file
     with open("otter.png", "wb") as f:
-        f.write(image_bytes)
+        f.write(base64.b64decode(image_base64))
 
     return MedicalImageResponse(image=image_base64)
