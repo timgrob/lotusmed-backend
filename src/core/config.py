@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     APP_API_VERSION: str = "/v1"
 
     OPENAI_API_KEY: SecretStr
-    OPENAI_MODEL_VERSION: str = "gpt-5.5"
+    OPENAI_CHATGPT_MODEL_VERSION: str = "gpt-5.5"
+    OPENAI_IMAGE_MODEL_VERSION: str = "gpt-image-2"
     ANTROPIC_API_KEY: SecretStr
     ANTROPIC_MODEL_VERSION: str = "opus-4.7"
 
@@ -30,4 +31,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings():
     return Settings()
-
