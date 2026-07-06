@@ -1,0 +1,26 @@
+# Ignore dependency directories
+node_modules/
+vendor/
+
+# Ignore build and output artifacts
+dist/
+build/
+*.o
+*.out
+
+# Hide sensitive configuration and security files
+.env
+config/secrets.yml
+api-keys.txt
+*.pem
+id_rsa
+
+# Ignore logs and temporary databases
+*.log
+*.tmp
+temp/
+db/data.sqlite
+
+# System files
+.DS_Store
+Thumbs.db
