@@ -1,42 +1,25 @@
 from datetime import datetime
-from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import DateTime, String, func
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.db.database import Base
+from src.schemas.user_option import UserRole, UserStatus
 
 
-class UserStatus(Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    PENDING = "pending"
-    BLOCKED = "blocked"
+class User(Base):
+    __tablename__ = "user"
 
-
-class UserRole(Enum):
-    ADMIN = "admin"
-    USER = "user"
-
-
-class UserBase(BaseModel):
-    username: str
-    email: EmailStr
-    role: UserRole = UserRole.USER
-    status: UserStatus = UserStatus.PENDING
-
-
-class UserCreate(UserBase):
-    password: str
-
-
-class UserUpdate(BaseModel):
-    username: str | None = None
-    email: EmailStr | None = None
-    password: str | None = None
-    role: UserRole | None = None
-    status: UserStatus | None = None
-
-
-class User(UserBase):
-    id: UUID = Field(default_factory=uuid4)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    username: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(255))
+    role: Mapped[UserRole] = mapped_column(default=UserRole.USER)
+    status: Mapped[UserStatus] = mapped_column(default=UserStatus.PENDING)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
