@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
@@ -17,14 +17,14 @@ async def create_user(payload: UserCreate) -> User:
     return user
 
 
-@router.put("/{user_id}", response_model=User)
+@router.put("/{user_id}", response_model=User, status_code=status.HTTP_204_NO_CONTENT)
 async def update_user(user_id: UUID, payload: UserUpdate) -> User:
     if not (current_user := USERS_DB.get(user_id)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     update_data = payload.model_dump(exclude_unset=True)
     updated_user = current_user.model_copy(update=update_data)
-    updated_user.updated_at = datetime.now(datetime.UTC)
+    updated_user.updated_at = datetime.now(timezone.utc)
     USERS_DB[user_id] = updated_user
     return updated_user
 
