@@ -1,16 +1,27 @@
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI
 
 from src.api.v1.routes.paraphrase import router as paraphrase_router
 from src.api.v1.routes.users import router as user_router
 from src.core.config import get_settings
+from src.db.database import create_db_and_tables
 
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
+
 
 app = FastAPI(
     title=settings.APP_NAME,
     description=settings.APP_DESCRIPTION,
     version=settings.APP_VERSION,
+    lifespan=lifespan,
 )
 
 app.include_router(paraphrase_router, prefix=f"/api/{settings.APP_API_VERSION}")
