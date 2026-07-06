@@ -7,7 +7,7 @@ from starlette.concurrency import run_in_threadpool
 
 from src.agents.openai_agent import OpenAI, get_agent
 from src.core.config import get_settings
-from src.models.paraphrase import (
+from src.schemas.paraphrase import (
     MedicalImageRequest,
     MedicalImageResponse,
     ParaphraseRequest,
@@ -29,8 +29,11 @@ async def generate_text(
     client: Annotated[OpenAI, Depends(get_agent)],
 ) -> ParaphraseResponse:
     text = payload.text.strip()
+
     if not text:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payload is required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Payload is required"
+        )
 
     default_instructions = load_prompt("medical_translation.md")
     language_instruction = (
@@ -74,7 +77,9 @@ async def generate_image(
 ) -> MedicalImageResponse:
     text = payload.text.strip()
     if not text:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payload is required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Payload is required"
+        )
 
     default_instructions = load_prompt("medical_depiction.md")
     project_instructions = (
@@ -94,7 +99,7 @@ async def generate_image(
         response = await run_in_threadpool(
             client.images.generate,
             model=settings.OPENAI_IMAGE_MODEL_VERSION,
-            prompt=prompt
+            prompt=prompt,
         )
         image_base64 = response.data[0].b64_json
     except OpenAIError as exc:

@@ -1,37 +1,69 @@
-from datetime import datetime, timezone
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
-from src.models.user import User, UserCreate, UserUpdate
+from src.core.security import hash_password
+from src.db.database import get_session
+from src.models.user import User as DBUser
+from src.schemas.user import User, UserCreate, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-USERS_DB: dict[UUID, User] = {}
+SessionDep = Annotated[Session, Depends(get_session)]
 
 
 @router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
-async def create_user(payload: UserCreate) -> User:
-    user = User(**payload.model_dump())
-    USERS_DB[user.id] = user
+def create_user(payload: UserCreate, session: SessionDep) -> DBUser:
+    user = DBUser(
+        username=payload.username,
+        email=payload.email,
+        hashed_password=hash_password(payload.password.get_secret_value()),
+        role=payload.role,
+        status=payload.status,
+    )
+    session.add(user)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username or email already exists",
+        )
+    session.refresh(user)
     return user
 
 
-@router.put("/{user_id}", response_model=User, status_code=status.HTTP_204_NO_CONTENT)
-async def update_user(user_id: UUID, payload: UserUpdate) -> User:
-    if not (current_user := USERS_DB.get(user_id)):
+@router.put("/{user_id}", response_model=User, status_code=status.HTTP_200_OK)
+def update_user(user_id: UUID, payload: UserUpdate, session: SessionDep) -> DBUser:
+    if not (user := session.get(DBUser, user_id)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     update_data = payload.model_dump(exclude_unset=True)
-    updated_user = current_user.model_copy(update=update_data)
-    updated_user.updated_at = datetime.now(timezone.utc)
-    USERS_DB[user_id] = updated_user
-    return updated_user
+    if (password := update_data.pop("password", None)) is not None:
+        user.hashed_password = hash_password(password.get_secret_value())
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username or email already exists",
+        )
+    session.refresh(user)
+    return user
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: UUID) -> None:
-    if user_id not in USERS_DB:
+def delete_user(user_id: UUID, session: SessionDep) -> None:
+    if not (user := session.get(DBUser, user_id)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    del USERS_DB[user_id]
+    session.delete(user)
+    session.commit()
