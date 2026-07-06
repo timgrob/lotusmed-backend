@@ -226,3 +226,6 @@ __marimo__/
 # Agents
 .claude/
 .codex/
+
+# SQLite dev database
+*.db
