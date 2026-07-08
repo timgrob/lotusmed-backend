@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 from src.core.exceptions import UserNotFoundError
 from src.models.user import User as DBUser
 from src.schemas.user import UserCreate
-from src.repositories.user_operations import create_db_user, find_db_user
+from src.repositories.user_operations import (
+    create_db_user,
+    delete_db_user,
+    find_db_user,
+)
 
 
 def test_create_user_db(session: Session):
@@ -40,3 +44,23 @@ def test_find_user_db(session: Session):
 def test_find_user_db_not_found(session: Session):
     with pytest.raises(UserNotFoundError):
         find_db_user(uuid4(), session)
+
+
+def test_delete_user_db(session: Session):
+    db_user = DBUser(
+        username="test_user",
+        email="test.user@example.com",
+        hashed_password="hashed",
+    )
+    session.add(db_user)
+    session.commit()
+    user_id = db_user.id
+
+    delete_db_user(user_id, session)
+
+    assert session.get(DBUser, user_id) is None
+
+
+def test_delete_user_db_not_found(session: Session):
+    with pytest.raises(UserNotFoundError):
+        delete_db_user(uuid4(), session)

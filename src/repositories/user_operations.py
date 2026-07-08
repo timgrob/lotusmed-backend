@@ -27,3 +27,9 @@ def find_db_user(user_id: UUID, session: Session) -> DBUser:
     if db_user is None:
         raise UserNotFoundError(f"User not found: {user_id=}")
     return db_user
+
+
+def delete_db_user(user_id: UUID, session: Session) -> None:
+    db_user = find_db_user(user_id, session)
+    session.delete(db_user)
+    session.commit()
