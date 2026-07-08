@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 
+from src.api.exception_handlers import register_exception_handlers
 from src.api.v1.routes.paraphrase import router as paraphrase_router
 from src.api.v1.routes.users import router as user_router
 from src.core.config import get_settings
@@ -26,6 +27,7 @@ app = FastAPI(
 
 app.include_router(paraphrase_router, prefix=f"/api/{settings.APP_API_VERSION}")
 app.include_router(user_router, prefix=f"/api/{settings.APP_API_VERSION}")
+register_exception_handlers(app)
 
 
 @app.get("/")
