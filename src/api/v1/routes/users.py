@@ -1,10 +1,8 @@
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, status
 
-from src.db.database import get_session
+from src.api.dependencies import SessionDep
 from src.models.user import User as DBUser
 from src.repositories.user_operations import (
     create_db_user,
@@ -16,8 +14,6 @@ from src.repositories.user_operations import (
 from src.schemas.user import User, UserCreate, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-SessionDep = Annotated[Session, Depends(get_session)]
 
 
 @router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
