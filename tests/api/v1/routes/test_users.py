@@ -8,12 +8,18 @@ USERS_URL = "/api/v1/users/"
 
 def create_user(
     client: TestClient,
-    username: str = "test_user",
+    first_name: str = "Test",
+    last_name: str = "User",
     email: str = "test.user@example.com",
 ) -> dict:
     response = client.post(
         USERS_URL,
-        json={"username": username, "email": email, "password": "password"},
+        json={
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "password": "password",
+        },
     )
     assert response.status_code == status.HTTP_201_CREATED
     return response.json()
@@ -21,19 +27,21 @@ def create_user(
 
 def test_create_user(client: TestClient):
     user = create_user(client)
-    assert user["username"] == "test_user"
+    assert user["first_name"] == "Test"
+    assert user["last_name"] == "User"
     assert user["email"] == "test.user@example.com"
     assert "password" not in user
     assert "hashed_password" not in user
 
 
-def test_create_user_duplicate(client: TestClient):
+def test_create_user_duplicate_email(client: TestClient):
     create_user(client)
 
     response = client.post(
         USERS_URL,
         json={
-            "username": "test_user",
+            "first_name": "Other",
+            "last_name": "Person",
             "email": "test.user@example.com",
             "password": "password",
         },
@@ -55,34 +63,34 @@ def test_get_user_not_found(client: TestClient):
 
 
 def test_list_users(client: TestClient):
-    create_user(client, username="user_one", email="one@example.com")
-    create_user(client, username="user_two", email="two@example.com")
+    create_user(client, first_name="One", email="one@example.com")
+    create_user(client, first_name="Two", email="two@example.com")
 
     response = client.get(USERS_URL)
     assert response.status_code == status.HTTP_200_OK
-    assert {user["username"] for user in response.json()} == {"user_one", "user_two"}
+    assert {user["first_name"] for user in response.json()} == {"One", "Two"}
 
 
 def test_update_user(client: TestClient):
     user = create_user(client)
 
-    response = client.patch(f"{USERS_URL}{user['id']}", json={"username": "new_name"})
+    response = client.patch(f"{USERS_URL}{user['id']}", json={"first_name": "New"})
     assert response.status_code == status.HTTP_200_OK
-    assert response.json()["username"] == "new_name"
-    assert response.json()["email"] == "test.user@example.com"
+    assert response.json()["first_name"] == "New"
+    assert response.json()["last_name"] == "User"
 
 
 def test_update_user_not_found(client: TestClient):
-    response = client.patch(f"{USERS_URL}{uuid4()}", json={"username": "new_name"})
+    response = client.patch(f"{USERS_URL}{uuid4()}", json={"first_name": "New"})
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 def test_update_user_ignores_explicit_null(client: TestClient):
     user = create_user(client)
 
-    response = client.patch(f"{USERS_URL}{user['id']}", json={"username": None})
+    response = client.patch(f"{USERS_URL}{user['id']}", json={"first_name": None})
     assert response.status_code == status.HTTP_200_OK
-    assert response.json()["username"] == "test_user"
+    assert response.json()["first_name"] == "Test"
 
 
 def test_delete_user(client: TestClient):

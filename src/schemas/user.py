@@ -7,7 +7,8 @@ from src.schemas.user_option import UserRole, UserStatus
 
 
 class UserCreate(BaseModel):
-    username: str
+    first_name: str
+    last_name: str
     email: EmailStr
     role: UserRole = UserRole.USER
     status: UserStatus = UserStatus.PENDING
@@ -15,7 +16,8 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     email: EmailStr | None = None
     role: UserRole | None = None
     status: UserStatus | None = None
@@ -24,7 +26,8 @@ class UserUpdate(BaseModel):
 
 class User(BaseModel):
     id: UUID
-    username: str
+    first_name: str
+    last_name: str
     email: EmailStr
     role: UserRole
     status: UserStatus
