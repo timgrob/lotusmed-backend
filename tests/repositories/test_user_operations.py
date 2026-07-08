@@ -1,8 +1,13 @@
+from uuid import uuid4
+
+import pytest
 from pydantic import SecretStr
 from sqlalchemy.orm import Session
 
+from src.core.exceptions import UserNotFoundError
+from src.models.user import User as DBUser
 from src.schemas.user import UserCreate
-from src.repositories.user_operations import create_db_user
+from src.repositories.user_operations import create_db_user, find_db_user
 
 
 def test_create_user_db(session: Session):
@@ -15,3 +20,23 @@ def test_create_user_db(session: Session):
     created_user = create_db_user(user_create, session)
     assert created_user.username == "test_user"
     assert created_user.email == "test.user@example.com"
+
+
+def test_find_user_db(session: Session):
+    db_user = DBUser(
+        username="test_user",
+        email="test.user@example.com",
+        hashed_password="hashed",
+    )
+    session.add(db_user)
+    session.commit()
+
+    found_user = find_db_user(db_user.id, session)
+    assert found_user.id == db_user.id
+    assert found_user.username == "test_user"
+    assert found_user.email == "test.user@example.com"
+
+
+def test_find_user_db_not_found(session: Session):
+    with pytest.raises(UserNotFoundError):
+        find_db_user(uuid4(), session)
