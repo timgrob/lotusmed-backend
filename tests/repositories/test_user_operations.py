@@ -45,9 +45,11 @@ async def test_create_user_db(session: AsyncSession):
     )
 
     created_user = await create_db_user(user_create, session)
+    assert created_user.id is not None
     assert created_user.first_name == "Test"
     assert created_user.last_name == "User"
     assert created_user.email == "test.user@example.com"
+    assert verify_password("password", created_user.hashed_password)
 
 
 async def test_create_user_db_duplicate_email(session: AsyncSession):

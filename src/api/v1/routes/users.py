@@ -17,7 +17,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
-async def create_user(payload: UserCreate, session: SessionDep) -> User:
+async def create_user(payload: UserCreate, session: SessionDep) -> DBUser:
     return await create_db_user(payload, session)
 
 
@@ -32,7 +32,9 @@ async def get_user(user_id: UUID, session: SessionDep) -> DBUser:
 
 
 @router.patch("/{user_id}", response_model=User)
-async def update_user(user_id: UUID, payload: UserUpdate, session: SessionDep) -> User:
+async def update_user(
+    user_id: UUID, payload: UserUpdate, session: SessionDep
+) -> DBUser:
     return await update_db_user(user_id, payload, session)
 
 

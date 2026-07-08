@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.exceptions import UserAlreadyExistsError, UserNotFoundError
 from src.core.security import hash_password
 from src.models.user import User as DBUser
-from src.schemas.user import User, UserCreate, UserUpdate
+from src.schemas.user import UserCreate, UserUpdate
 
 
 async def _ensure_email_unique(
@@ -23,7 +23,7 @@ async def _ensure_email_unique(
         raise UserAlreadyExistsError("Email already exists")
 
 
-async def create_db_user(user: UserCreate, session: AsyncSession) -> User:
+async def create_db_user(user: UserCreate, session: AsyncSession) -> DBUser:
     await _ensure_email_unique(session, user.email)
     hashed_password = await asyncio.to_thread(
         hash_password, user.password.get_secret_value()
@@ -39,7 +39,7 @@ async def create_db_user(user: UserCreate, session: AsyncSession) -> User:
     session.add(db_user)
     await session.commit()
     await session.refresh(db_user)
-    return User.model_validate(db_user, from_attributes=True)
+    return db_user
 
 
 async def find_db_user(user_id: UUID, session: AsyncSession) -> DBUser:
@@ -55,19 +55,22 @@ async def list_db_users(session: AsyncSession) -> list[DBUser]:
 
 async def update_db_user(
     user_id: UUID, user_update: UserUpdate, session: AsyncSession
-) -> User:
+) -> DBUser:
     db_user = await find_db_user(user_id, session)
     update_data = user_update.model_dump(exclude_unset=True, exclude_none=True)
     await _ensure_email_unique(session, update_data.get("email"), exclude_id=user_id)
+
     if (password := update_data.pop("password", None)) is not None:
         db_user.hashed_password = await asyncio.to_thread(
             hash_password, password.get_secret_value()
         )
+
     for field, value in update_data.items():
         setattr(db_user, field, value)
+
     await session.commit()
     await session.refresh(db_user)
-    return User.model_validate(db_user, from_attributes=True)
+    return db_user
 
 
 async def delete_db_user(user_id: UUID, session: AsyncSession) -> None:
