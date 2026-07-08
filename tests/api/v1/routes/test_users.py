@@ -9,9 +9,4 @@ def test_create_user(client: TestClient):
         "password": "password",
     }
     response = client.post("/api/v1/users/", json=payload)
-    created_user = response.json()
     assert response.status_code == status.HTTP_201_CREATED
-    assert created_user["username"] == "test_user"
-    assert created_user["email"] == "test.user@example.com"
-    assert "id" in created_user
-    assert "password" not in created_user

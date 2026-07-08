@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, SecretStr
+from pydantic import BaseModel, EmailStr, SecretStr
 
 from src.schemas.user_option import UserRole, UserStatus
 
