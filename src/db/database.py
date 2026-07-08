@@ -1,7 +1,12 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 
-from sqlalchemy import MetaData, create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy import MetaData
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import DeclarativeBase
 
 from src.core.config import get_settings
 
@@ -15,31 +20,23 @@ NAMING_CONVENTION = {
     "pk": "%(table_name)s_pkey",
 }
 
-# check_same_thread is SQLite-only; other drivers reject unknown connect args
-connect_args = (
-    {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
-)
+engine = create_async_engine(settings.DATABASE_URL, echo=settings.APP_DEBUG)
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args=connect_args,
-    echo=settings.APP_DEBUG,
-)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = async_sessionmaker(engine, autoflush=False, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
-def get_session() -> Generator[Session, None, None]:
-    with SessionLocal() as session:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with SessionLocal() as session:
         yield session
 
 
-def create_db_and_tables() -> None:
+async def create_db_and_tables() -> None:
     # Models must be imported so their tables register on Base.metadata
     import src.models.user  # noqa: F401
 
-    Base.metadata.create_all(engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)

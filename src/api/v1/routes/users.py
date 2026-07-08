@@ -17,25 +17,25 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate, session: SessionDep) -> User:
-    return create_db_user(payload, session)
+async def create_user(payload: UserCreate, session: SessionDep) -> User:
+    return await create_db_user(payload, session)
 
 
 @router.get("/", response_model=list[User])
-def list_users(session: SessionDep) -> list[DBUser]:
-    return list_db_users(session)
+async def list_users(session: SessionDep) -> list[DBUser]:
+    return await list_db_users(session)
 
 
 @router.get("/{user_id}", response_model=User)
-def get_user(user_id: UUID, session: SessionDep) -> DBUser:
-    return find_db_user(user_id, session)
+async def get_user(user_id: UUID, session: SessionDep) -> DBUser:
+    return await find_db_user(user_id, session)
 
 
 @router.patch("/{user_id}", response_model=User)
-def update_user(user_id: UUID, payload: UserUpdate, session: SessionDep) -> User:
-    return update_db_user(user_id, payload, session)
+async def update_user(user_id: UUID, payload: UserUpdate, session: SessionDep) -> User:
+    return await update_db_user(user_id, payload, session)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: UUID, session: SessionDep) -> None:
-    delete_db_user(user_id, session)
+async def delete_user(user_id: UUID, session: SessionDep) -> None:
+    await delete_db_user(user_id, session)

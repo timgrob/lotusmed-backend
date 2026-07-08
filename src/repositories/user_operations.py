@@ -1,6 +1,8 @@
+import asyncio
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import UserAlreadyExistsError, UserNotFoundError
 from src.core.security import hash_password
@@ -8,60 +10,67 @@ from src.models.user import User as DBUser
 from src.schemas.user import User, UserCreate, UserUpdate
 
 
-def _ensure_email_unique(
-    session: Session, email: str | None, exclude_id: UUID | None = None
+async def _ensure_email_unique(
+    session: AsyncSession, email: str | None, exclude_id: UUID | None = None
 ) -> None:
     if email is None:
         return
 
-    query = session.query(DBUser).filter(DBUser.email == email)
+    stmt = select(DBUser).where(DBUser.email == email)
     if exclude_id is not None:
-        query = query.filter(DBUser.id != exclude_id)
-    if query.first() is not None:
+        stmt = stmt.where(DBUser.id != exclude_id)
+    if (await session.scalars(stmt)).first() is not None:
         raise UserAlreadyExistsError("Email already exists")
 
 
-def create_db_user(user: UserCreate, session: Session) -> User:
-    _ensure_email_unique(session, user.email)
+async def create_db_user(user: UserCreate, session: AsyncSession) -> User:
+    await _ensure_email_unique(session, user.email)
+    hashed_password = await asyncio.to_thread(
+        hash_password, user.password.get_secret_value()
+    )
     db_user = DBUser(
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
-        hashed_password=hash_password(user.password.get_secret_value()),
+        hashed_password=hashed_password,
         role=user.role,
         status=user.status,
     )
     session.add(db_user)
-    session.commit()
-    session.refresh(db_user)
+    await session.commit()
+    await session.refresh(db_user)
     return User.model_validate(db_user, from_attributes=True)
 
 
-def find_db_user(user_id: UUID, session: Session) -> DBUser:
-    db_user = session.query(DBUser).filter(DBUser.id == user_id).first()
+async def find_db_user(user_id: UUID, session: AsyncSession) -> DBUser:
+    db_user = await session.get(DBUser, user_id)
     if db_user is None:
         raise UserNotFoundError(f"User not found: {user_id=}")
     return db_user
 
 
-def list_db_users(session: Session) -> list[DBUser]:
-    return session.query(DBUser).all()
+async def list_db_users(session: AsyncSession) -> list[DBUser]:
+    return list((await session.scalars(select(DBUser))).all())
 
 
-def update_db_user(user_id: UUID, user_update: UserUpdate, session: Session) -> User:
-    db_user = find_db_user(user_id, session)
+async def update_db_user(
+    user_id: UUID, user_update: UserUpdate, session: AsyncSession
+) -> User:
+    db_user = await find_db_user(user_id, session)
     update_data = user_update.model_dump(exclude_unset=True, exclude_none=True)
-    _ensure_email_unique(session, update_data.get("email"), exclude_id=user_id)
+    await _ensure_email_unique(session, update_data.get("email"), exclude_id=user_id)
     if (password := update_data.pop("password", None)) is not None:
-        db_user.hashed_password = hash_password(password.get_secret_value())
+        db_user.hashed_password = await asyncio.to_thread(
+            hash_password, password.get_secret_value()
+        )
     for field, value in update_data.items():
         setattr(db_user, field, value)
-    session.commit()
-    session.refresh(db_user)
+    await session.commit()
+    await session.refresh(db_user)
     return User.model_validate(db_user, from_attributes=True)
 
 
-def delete_db_user(user_id: UUID, session: Session) -> None:
-    db_user = find_db_user(user_id, session)
-    session.delete(db_user)
-    session.commit()
+async def delete_db_user(user_id: UUID, session: AsyncSession) -> None:
+    db_user = await find_db_user(user_id, session)
+    await session.delete(db_user)
+    await session.commit()

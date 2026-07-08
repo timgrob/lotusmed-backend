@@ -1,18 +1,21 @@
 from uuid import uuid4
 
+import pytest
 from fastapi import status
-from fastapi.testclient import TestClient
+from httpx2 import AsyncClient
+
+pytestmark = pytest.mark.anyio
 
 USERS_URL = "/api/v1/users/"
 
 
-def create_user(
-    client: TestClient,
+async def create_user(
+    client: AsyncClient,
     first_name: str = "Test",
     last_name: str = "User",
     email: str = "test.user@example.com",
 ) -> dict:
-    response = client.post(
+    response = await client.post(
         USERS_URL,
         json={
             "first_name": first_name,
@@ -25,8 +28,8 @@ def create_user(
     return response.json()
 
 
-def test_create_user(client: TestClient):
-    user = create_user(client)
+async def test_create_user(client: AsyncClient):
+    user = await create_user(client)
     assert user["first_name"] == "Test"
     assert user["last_name"] == "User"
     assert user["email"] == "test.user@example.com"
@@ -34,10 +37,10 @@ def test_create_user(client: TestClient):
     assert "hashed_password" not in user
 
 
-def test_create_user_duplicate_email(client: TestClient):
-    create_user(client)
+async def test_create_user_duplicate_email(client: AsyncClient):
+    await create_user(client)
 
-    response = client.post(
+    response = await client.post(
         USERS_URL,
         json={
             "first_name": "Other",
@@ -49,60 +52,62 @@ def test_create_user_duplicate_email(client: TestClient):
     assert response.status_code == status.HTTP_409_CONFLICT
 
 
-def test_get_user(client: TestClient):
-    user = create_user(client)
+async def test_get_user(client: AsyncClient):
+    user = await create_user(client)
 
-    response = client.get(f"{USERS_URL}{user['id']}")
+    response = await client.get(f"{USERS_URL}{user['id']}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == user
 
 
-def test_get_user_not_found(client: TestClient):
-    response = client.get(f"{USERS_URL}{uuid4()}")
+async def test_get_user_not_found(client: AsyncClient):
+    response = await client.get(f"{USERS_URL}{uuid4()}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_list_users(client: TestClient):
-    create_user(client, first_name="One", email="one@example.com")
-    create_user(client, first_name="Two", email="two@example.com")
+async def test_list_users(client: AsyncClient):
+    await create_user(client, first_name="One", email="one@example.com")
+    await create_user(client, first_name="Two", email="two@example.com")
 
-    response = client.get(USERS_URL)
+    response = await client.get(USERS_URL)
     assert response.status_code == status.HTTP_200_OK
     assert {user["first_name"] for user in response.json()} == {"One", "Two"}
 
 
-def test_update_user(client: TestClient):
-    user = create_user(client)
+async def test_update_user(client: AsyncClient):
+    user = await create_user(client)
 
-    response = client.patch(f"{USERS_URL}{user['id']}", json={"first_name": "New"})
+    response = await client.patch(
+        f"{USERS_URL}{user['id']}", json={"first_name": "New"}
+    )
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["first_name"] == "New"
     assert response.json()["last_name"] == "User"
 
 
-def test_update_user_not_found(client: TestClient):
-    response = client.patch(f"{USERS_URL}{uuid4()}", json={"first_name": "New"})
+async def test_update_user_not_found(client: AsyncClient):
+    response = await client.patch(f"{USERS_URL}{uuid4()}", json={"first_name": "New"})
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_update_user_ignores_explicit_null(client: TestClient):
-    user = create_user(client)
+async def test_update_user_ignores_explicit_null(client: AsyncClient):
+    user = await create_user(client)
 
-    response = client.patch(f"{USERS_URL}{user['id']}", json={"first_name": None})
+    response = await client.patch(f"{USERS_URL}{user['id']}", json={"first_name": None})
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["first_name"] == "Test"
 
 
-def test_delete_user(client: TestClient):
-    user = create_user(client)
+async def test_delete_user(client: AsyncClient):
+    user = await create_user(client)
 
-    response = client.delete(f"{USERS_URL}{user['id']}")
+    response = await client.delete(f"{USERS_URL}{user['id']}")
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
-    response = client.get(f"{USERS_URL}{user['id']}")
+    response = await client.get(f"{USERS_URL}{user['id']}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_delete_user_not_found(client: TestClient):
-    response = client.delete(f"{USERS_URL}{uuid4()}")
+async def test_delete_user_not_found(client: AsyncClient):
+    response = await client.delete(f"{USERS_URL}{uuid4()}")
     assert response.status_code == status.HTTP_404_NOT_FOUND

@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     APP_ENV: str = "dev"
 
-    DATABASE_URL: str = "sqlite:///database.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///database.db"
 
     OPENAI_API_KEY: SecretStr
     OPENAI_MODEL_VERSION: str = "gpt-5.5"

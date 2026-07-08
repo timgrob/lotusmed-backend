@@ -1,11 +1,12 @@
+import asyncio
 import base64
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from openai import OpenAIError
-from starlette.concurrency import run_in_threadpool
 
-from src.agents.openai_agent import OpenAI, get_agent
+from src.agents.openai_agent import AsyncOpenAI, get_agent
 from src.core.config import get_settings
 from src.schemas.paraphrase import (
     MedicalImageRequest,
@@ -26,7 +27,7 @@ settings = get_settings()
 )
 async def generate_text(
     payload: ParaphraseRequest,
-    client: Annotated[OpenAI, Depends(get_agent)],
+    client: Annotated[AsyncOpenAI, Depends(get_agent)],
 ) -> ParaphraseResponse:
     text = payload.text.strip()
 
@@ -49,8 +50,7 @@ async def generate_text(
     )
 
     try:
-        response = await run_in_threadpool(
-            client.responses.create,
+        response = await client.responses.create(
             model=settings.OPENAI_CHATGPT_MODEL_VERSION,
             instructions=(
                 f"{default_instructions}\n\n{language_instruction}\n\n{project_instructions}"
@@ -73,7 +73,7 @@ async def generate_text(
 )
 async def generate_image(
     payload: MedicalImageRequest,
-    client: Annotated[OpenAI, Depends(get_agent)],
+    client: Annotated[AsyncOpenAI, Depends(get_agent)],
 ) -> MedicalImageResponse:
     text = payload.text.strip()
     if not text:
@@ -96,8 +96,7 @@ async def generate_image(
             """
 
     try:
-        response = await run_in_threadpool(
-            client.images.generate,
+        response = await client.images.generate(
             model=settings.OPENAI_IMAGE_MODEL_VERSION,
             prompt=prompt,
         )
@@ -115,7 +114,8 @@ async def generate_image(
         )
 
     # Save the image to a file
-    with open("otter.png", "wb") as f:
-        f.write(base64.b64decode(image_base64))
+    await asyncio.to_thread(
+        Path("otter.png").write_bytes, base64.b64decode(image_base64)
+    )
 
     return MedicalImageResponse(image=image_base64)
