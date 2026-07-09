@@ -1,7 +1,6 @@
 from functools import lru_cache
-from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,21 +10,20 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     APP_DEBUG: bool = False
 
-    APP_PORT: int = 8080
-    APP_HOST: str = "0.0.0.0"
-    APP_RELOAD: bool = False
-    APP_API_VERSION: str = "v1"
+    APP_PORT: int = Field(default=8080, alias="APP_PORT")
+    APP_HOST: str = Field(default="0.0.0.0", alias="APP_HOST")
+    APP_API_VERSION: str = Field(default="v1", alias="APP_API_VERSION")
 
-    APP_ENV: str = "dev"
+    DATABASE_URL: str = Field(alias="DATABASE_URL")
 
-    DATABASE_URL: str = "sqlite+aiosqlite:///database.db"
+    ENVIRONMENT: str = Field(default="dev", alias="ENVIRONMENT")
 
     OPENAI_API_KEY: SecretStr
     OPENAI_MODEL_VERSION: str = "gpt-5.5"
-    ANTHROPIC_API_KEY: SecretStr
-    ANTHROPIC_MODEL_VERSION: str = "opus-4.7"
-    GEMINI_API_KEY: SecretStr
-    GEMINI_MODEL_VERSIOIN: str = ""
+    # ANTHROPIC_API_KEY: SecretStr
+    # ANTHROPIC_MODEL_VERSION: str = "opus-4.7"
+    # GEMINI_API_KEY: SecretStr
+    # GEMINI_MODEL_VERSIOIN: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -35,8 +35,5 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def create_db_and_tables() -> None:
-    # Models must be imported so their tables register on Base.metadata
-    import src.models.user  # noqa: F401
-
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
