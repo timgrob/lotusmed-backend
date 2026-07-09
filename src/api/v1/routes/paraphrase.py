@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from openai import OpenAIError
 
-from src.agents.openai_agent import AsyncOpenAI, get_agent
+from src.api.dependencies import AgentDep
 from src.core.config import get_settings
 from src.schemas.paraphrase import (
     MedicalImageRequest,
@@ -27,7 +27,7 @@ settings = get_settings()
 )
 async def generate_text(
     payload: ParaphraseRequest,
-    client: Annotated[AsyncOpenAI, Depends(get_agent)],
+    agent: AgentDep,
 ) -> ParaphraseResponse:
     text = payload.text.strip()
 
@@ -50,8 +50,8 @@ async def generate_text(
     )
 
     try:
-        response = await client.responses.create(
-            model=settings.OPENAI_CHATGPT_MODEL_VERSION,
+        response = await agent.responses.create(
+            model=settings.OPENAI_MODEL_VERSION,
             instructions=(
                 f"{default_instructions}\n\n{language_instruction}\n\n{project_instructions}"
             ),
@@ -73,7 +73,7 @@ async def generate_text(
 )
 async def generate_image(
     payload: MedicalImageRequest,
-    client: Annotated[AsyncOpenAI, Depends(get_agent)],
+    agent: AgentDep,
 ) -> MedicalImageResponse:
     text = payload.text.strip()
     if not text:
@@ -96,7 +96,7 @@ async def generate_image(
             """
 
     try:
-        response = await client.images.generate(
+        response = await agent.images.generate(
             model=settings.OPENAI_IMAGE_MODEL_VERSION,
             prompt=prompt,
         )
