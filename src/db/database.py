@@ -22,7 +22,9 @@ NAMING_CONVENTION = {
 
 engine = create_async_engine(settings.DATABASE_URL, echo=settings.APP_DEBUG)
 
-SessionLocal = async_sessionmaker(engine, autoflush=False, expire_on_commit=False)
+SessionLocal = async_sessionmaker(
+    bind=engine, class_=AsyncSession, autoflush=False, expire_on_commit=False
+)
 
 
 class Base(DeclarativeBase):
