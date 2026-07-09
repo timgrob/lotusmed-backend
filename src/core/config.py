@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     APP_DEBUG: bool = False
 
-    APP_PORT: int = 8000
+    APP_PORT: int = 8080
     APP_HOST: str = "0.0.0.0"
     APP_RELOAD: bool = False
     APP_API_VERSION: str = "v1"
@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     GEMINI_MODEL_VERSIOIN: str = ""
 
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).parent.parent.parent / ".env",
+        env_file=".env",
+        env_file_encoding="utf-8",
         env_ignore_empty=True,
         extra="ignore",
     )
