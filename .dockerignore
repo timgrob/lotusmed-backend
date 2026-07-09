@@ -1,0 +1,47 @@
+# Version control
+.git
+.gitignore
+
+# Docker (not needed inside the image)
+Dockerfile
+.dockerignore
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments (image builds its own in the builder stage)
+.venv/
+venv/
+
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Tests (not shipped in production images)
+tests/
+
+# Secrets and environment files
+.env
+.env.*
+.env.example
+
+# Local databases
+*.db
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+
+# Agent and tooling directories
+.claude/
+.codex/
+.agentignore
+
+# Documentation
+*.md
