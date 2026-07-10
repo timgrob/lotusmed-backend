@@ -1,121 +1,83 @@
-import asyncio
-import base64
-from pathlib import Path
-from typing import Annotated
+from fastapi import APIRouter
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from openai import OpenAIError
-
-from src.api.dependencies import AgentDep
-from src.core.config import get_settings
-from src.schemas.paraphrase import (
-    MedicalImageRequest,
-    MedicalImageResponse,
-    ParaphraseRequest,
-    ParaphraseResponse,
-)
-from src.prompts import load_prompt
+from src.api.dependencies import ParaphraseServiceDep
+from src.schemas.paraphrase import ParaphraseRequest, ParaphraseResponse
 
 router = APIRouter(prefix="/paraphrase", tags=["paraphrase"])
-settings = get_settings()
 
 
-@router.post(
-    "/generate-text",
-    response_model=ParaphraseResponse,
-    status_code=status.HTTP_200_OK,
-)
+@router.post("/generate-text", response_model=ParaphraseResponse)
 async def generate_text(
     payload: ParaphraseRequest,
-    agent: AgentDep,
+    service: ParaphraseServiceDep,
 ) -> ParaphraseResponse:
-    text = payload.text.strip()
-
-    if not text:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Payload is required"
-        )
-
-    default_instructions = load_prompt("medical_translation.md")
-    language_instruction = (
-        f"Write the final text in {payload.target_language}."
-        if payload.target_language
-        else "Write the final text in the same language as the source text."
-    )
-    project_instructions = (
-        "Additional translation rules from the application owner:\n"
-        f"{payload.instructions.strip()}"
-        if payload.instructions
-        else ""
-    )
-
-    try:
-        response = await agent.responses.create(
-            model=settings.OPENAI_MODEL_VERSION,
-            instructions=(
-                f"{default_instructions}\n\n{language_instruction}\n\n{project_instructions}"
-            ),
-            input=text,
-        )
-    except OpenAIError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to generate paraphrased text",
-        ) from exc
-
-    return ParaphraseResponse(text=response.output_text)
+    """Rewrite a scientific text into a more human-readable form."""
+    return ParaphraseResponse(text=await service.paraphrase(payload))
 
 
-@router.post(
-    "/generate-image",
-    response_model=MedicalImageResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def generate_image(
-    payload: MedicalImageRequest,
-    agent: AgentDep,
-) -> MedicalImageResponse:
-    text = payload.text.strip()
-    if not text:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Payload is required"
-        )
+# Imports needed once /generate-image is revived:
+# import asyncio
+# import base64
+# from pathlib import Path
+# from fastapi import HTTPException, status
+# from openai import OpenAIError
+# from src.api.dependencies import AgentDep
+# from src.core.config import get_settings
+# from src.prompts import load_prompt
+# from src.schemas.paraphrase import MedicalImageRequest, MedicalImageResponse
+# settings = get_settings()
 
-    default_instructions = load_prompt("medical_depiction.md")
-    project_instructions = (
-        "Additional depiction rules from the application owner:\n"
-        f"{payload.instructions.strip()}"
-        if payload.instructions
-        else ""
-    )
 
-    prompt = f""""
-            Generate one medical infographic image based on the following medical text: {text} \n\n
-            When generating the image, closely follow these instructions: {default_instructions} 
-            and {project_instructions}
-            """
+# @router.post(
+#     "/generate-image",
+#     response_model=MedicalImageResponse,
+#     status_code=status.HTTP_200_OK,
+# )
+# async def generate_image(
+#     payload: MedicalImageRequest,
+#     agent: AgentDep,
+# ) -> MedicalImageResponse:
+#     text = payload.text.strip()
+#     if not text:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST, detail="Payload is required"
+#         )
 
-    try:
-        response = await agent.images.generate(
-            model=settings.OPENAI_IMAGE_MODEL_VERSION,
-            prompt=prompt,
-        )
-        image_base64 = response.data[0].b64_json
-    except OpenAIError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to generate medical image",
-        ) from exc
+#     default_instructions = load_prompt("medical_depiction.md")
+#     project_instructions = (
+#         "Additional depiction rules from the application owner:\n"
+#         f"{payload.instructions.strip()}"
+#         if payload.instructions
+#         else ""
+#     )
 
-    if not image_base64:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="OpenAI did not return a valid image",
-        )
+#     prompt = f""""
+#             Generate one medical infographic image based on the following medical text: {text} \n\n
+#             When generating the image, closely follow these instructions: {default_instructions}
+#             and {project_instructions}
+#             """
 
-    # Save the image to a file
-    await asyncio.to_thread(
-        Path("otter.png").write_bytes, base64.b64decode(image_base64)
-    )
+#     try:
+#         response = await agent.images.generate(
+#             model=settings.OPENAI_IMAGE_MODEL_VERSION,
+#             prompt=prompt,
+#         )
+#         image_base64 = response.data[0].b64_json
+#     except OpenAIError as exc:
+#         raise HTTPException(
+#             status_code=status.HTTP_502_BAD_GATEWAY,
+#             detail="Failed to generate medical image",
+#         ) from exc
 
-    return MedicalImageResponse(image=image_base64)
+#     if not image_base64:
+#         raise HTTPException(
+#             status_code=status.HTTP_502_BAD_GATEWAY,
+#             detail="OpenAI did not return a valid image",
+#         )
+
+#     # Save the image to a file
+#     await asyncio.to_thread(
+#         Path("otter.png").write_bytes, base64.b64decode(image_base64)
+#     )
+
+#     return MedicalImageResponse(image=image_base64)

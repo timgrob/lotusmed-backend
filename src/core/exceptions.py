@@ -12,3 +12,7 @@ class UserNotFoundError(NotFoundError):
 
 class UserAlreadyExistsError(AlreadyExistsError):
     """Raised when a write violates a unique user constraint."""
+
+
+class UpstreamAIError(Exception):
+    """Raised when an upstream AI provider fails or returns no output."""

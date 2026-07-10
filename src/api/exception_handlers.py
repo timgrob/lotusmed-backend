@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from src.core.exceptions import AlreadyExistsError, NotFoundError
+from src.core.exceptions import AlreadyExistsError, NotFoundError, UpstreamAIError
 
 
 async def not_found_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -16,6 +16,13 @@ async def already_exists_handler(request: Request, exc: Exception) -> JSONRespon
     )
 
 
+async def upstream_ai_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_502_BAD_GATEWAY, content={"detail": str(exc)}
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(NotFoundError, not_found_handler)
     app.add_exception_handler(AlreadyExistsError, already_exists_handler)
+    app.add_exception_handler(UpstreamAIError, upstream_ai_handler)

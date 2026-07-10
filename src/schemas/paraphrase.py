@@ -1,11 +1,16 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 
 class ParaphraseRequest(BaseModel):
-    text: str = Field(..., min_length=1)
-    instructions: str | None = Field(
+    text: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20_000)
+    ]
+    instructions: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=5_000)]
+        | None
+    ) = Field(
         default=None,
         description="Optional project-specific translation/paraphrasing rules.",
     )
@@ -25,10 +30,14 @@ class MedicalImageRequest(BaseModel):
         default=None,
         description="Optional project-specific medical depiction rules.",
     )
-    size: Literal["auto", "1024x1024", "1536x1024", "1024x1536", "2048x2048", "2048x1152"] = "auto"
+    size: Literal[
+        "auto", "1024x1024", "1536x1024", "1024x1536", "2048x2048", "2048x1152"
+    ] = "auto"
     quality: Literal["auto", "low", "medium", "high"] = "auto"
     output_format: Literal["png", "jpeg", "webp"] = "png"
-    output_compression: int = Field(default=0, ge=0, le=100, description="Image compression")
+    output_compression: int = Field(
+        default=0, ge=0, le=100, description="Image compression"
+    )
 
 
 class MedicalImageResponse(BaseModel):
