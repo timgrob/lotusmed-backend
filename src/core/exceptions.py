@@ -16,3 +16,7 @@ class UserAlreadyExistsError(AlreadyExistsError):
 
 class UpstreamAIError(Exception):
     """Raised when an upstream AI provider fails or returns no output."""
+
+
+class ProviderNotConfiguredError(Exception):
+    """Raised when a requested AI provider has no API key configured."""

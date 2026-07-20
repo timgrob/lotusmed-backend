@@ -1,52 +1,77 @@
-from types import SimpleNamespace
-from unittest.mock import AsyncMock
-
 import pytest
-from openai import OpenAIError
 
-from src.core.exceptions import UpstreamAIError
+from src.core.exceptions import ProviderNotConfiguredError, UpstreamAIError
 from src.schemas.paraphrase import ParaphraseRequest
 from src.services.paraphrase import ParaphraseService
+from tests.fakes import FakeGenerator
 
 pytestmark = pytest.mark.anyio
 
-
-def make_service(
-    output_text: str | None = None, error: Exception | None = None
-) -> tuple[ParaphraseService, AsyncMock]:
-    client = AsyncMock()
-    if error is not None:
-        client.responses.create.side_effect = error
-    else:
-        client.responses.create.return_value = SimpleNamespace(output_text=output_text)
-    return ParaphraseService(client=client, model="test-model"), client
+REQUEST = ParaphraseRequest(text="Myocardial infarction.")
 
 
-async def test_paraphrase_returns_output_text():
-    service, client = make_service(output_text="Plain explanation.")
+async def test_paraphrase_uses_default_provider():
+    openai = FakeGenerator(model="gpt-test", text="From OpenAI.")
+    service = ParaphraseService(providers={"openai": openai}, default_provider="openai")
 
-    result = await service.paraphrase(ParaphraseRequest(text="Myocardial infarction."))
+    response = await service.paraphrase(REQUEST)
 
-    assert result == "Plain explanation."
-    call_kwargs = client.responses.create.call_args.kwargs
-    assert call_kwargs["model"] == "test-model"
-    assert call_kwargs["input"] == "Myocardial infarction."
+    assert response.text == "From OpenAI."
+    assert response.provider == "openai"
+    assert response.model == "gpt-test"
+    assert openai.input_text == "Myocardial infarction."
+
+
+async def test_paraphrase_uses_requested_provider():
+    openai = FakeGenerator(text="From OpenAI.")
+    anthropic = FakeGenerator(model="claude-test", text="From Claude.")
+    service = ParaphraseService(
+        providers={"openai": openai, "anthropic": anthropic},
+        default_provider="openai",
+    )
+
+    response = await service.paraphrase(
+        ParaphraseRequest(text="Myocardial infarction.", provider="anthropic")
+    )
+
+    assert response.text == "From Claude."
+    assert response.provider == "anthropic"
+    assert response.model == "claude-test"
+    assert openai.input_text is None
+
+
+async def test_paraphrase_unconfigured_provider():
+    service = ParaphraseService(
+        providers={"openai": FakeGenerator()}, default_provider="openai"
+    )
+
+    with pytest.raises(ProviderNotConfiguredError):
+        await service.paraphrase(
+            ParaphraseRequest(text="Myocardial infarction.", provider="gemini")
+        )
 
 
 async def test_paraphrase_defaults_to_source_language():
-    service, client = make_service(output_text="Plain explanation.")
-
-    await service.paraphrase(ParaphraseRequest(text="Myocardial infarction."))
-
-    instructions = client.responses.create.call_args.kwargs["instructions"]
-    assert (
-        "Write the final text in the same language as the source text." in instructions
+    generator = FakeGenerator()
+    service = ParaphraseService(
+        providers={"openai": generator}, default_provider="openai"
     )
-    assert not instructions.endswith("\n")
+
+    await service.paraphrase(REQUEST)
+
+    assert generator.instructions is not None
+    assert (
+        "Write the final text in the same language as the source text."
+        in generator.instructions
+    )
+    assert not generator.instructions.endswith("\n")
 
 
 async def test_paraphrase_includes_language_and_instructions():
-    service, client = make_service(output_text="Plain explanation.")
+    generator = FakeGenerator()
+    service = ParaphraseService(
+        providers={"openai": generator}, default_provider="openai"
+    )
 
     await service.paraphrase(
         ParaphraseRequest(
@@ -56,23 +81,30 @@ async def test_paraphrase_includes_language_and_instructions():
         )
     )
 
-    instructions = client.responses.create.call_args.kwargs["instructions"]
-    assert "Write the final text in German." in instructions
+    assert generator.instructions is not None
+    assert "Write the final text in German." in generator.instructions
     assert (
         "Additional translation rules from the application owner:\nUse short sentences."
-        in instructions
+        in generator.instructions
     )
 
 
-async def test_paraphrase_openai_error():
-    service, _ = make_service(error=OpenAIError("upstream failure"))
+async def test_paraphrase_all_collects_results():
+    service = ParaphraseService(
+        providers={
+            "openai": FakeGenerator(model="gpt-test", text="From OpenAI."),
+            "anthropic": FakeGenerator(
+                model="claude-test", error=UpstreamAIError("upstream failure")
+            ),
+        },
+        default_provider="openai",
+    )
 
-    with pytest.raises(UpstreamAIError):
-        await service.paraphrase(ParaphraseRequest(text="Myocardial infarction."))
+    comparison = await service.paraphrase_all(REQUEST)
 
-
-async def test_paraphrase_empty_output():
-    service, _ = make_service(output_text="")
-
-    with pytest.raises(UpstreamAIError):
-        await service.paraphrase(ParaphraseRequest(text="Myocardial infarction."))
+    results = {result.provider: result for result in comparison.results}
+    assert results["openai"].text == "From OpenAI."
+    assert results["openai"].error is None
+    assert results["anthropic"].text is None
+    assert results["anthropic"].error == "upstream failure"
+    assert results["anthropic"].model == "claude-test"

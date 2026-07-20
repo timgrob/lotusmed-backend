@@ -3,6 +3,8 @@ from functools import lru_cache
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from src.agents.base import AIProvider
+
 
 class Settings(BaseSettings):
     APP_NAME: str = "Lotusmed Backend"
@@ -18,12 +20,13 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: str = Field(default="dev", alias="ENVIRONMENT")
 
+    DEFAULT_AI_PROVIDER: AIProvider = "openai"
     OPENAI_API_KEY: SecretStr
     OPENAI_MODEL_VERSION: str = "gpt-5.5"
-    # ANTHROPIC_API_KEY: SecretStr
-    # ANTHROPIC_MODEL_VERSION: str = "opus-4.7"
-    # GEMINI_API_KEY: SecretStr
-    # GEMINI_MODEL_VERSIOIN: str = ""
+    ANTHROPIC_API_KEY: SecretStr | None = None
+    ANTHROPIC_MODEL_VERSION: str = "claude-opus-4-8"
+    GEMINI_API_KEY: SecretStr | None = None
+    GEMINI_MODEL_VERSION: str = "gemini-2.5-flash"
 
     model_config = SettingsConfigDict(
         env_file=".env",
