@@ -8,7 +8,7 @@ class AnthropicAgent:
     def __init__(self, api_key: str, model: str) -> None:
         self._client = AsyncAnthropic(api_key=api_key, timeout=60.0, max_retries=2)
         self.model: str = model
-        self.provider: str = AIProvider.ANTHROPIC
+        self.provider: AIProvider = AIProvider.ANTHROPIC
 
     async def generate(self, instructions: str, text: str) -> str:
         try:
