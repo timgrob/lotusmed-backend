@@ -2,7 +2,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints
 
-from src.agents.base import AIProvider
+from src.agents.agentic import AIProviderName
 
 
 class ParaphraseRequest(BaseModel):
@@ -20,7 +20,7 @@ class ParaphraseRequest(BaseModel):
         default=None,
         description="Optional output language. If omitted, the source language is preserved.",
     )
-    provider: AIProvider | None = Field(
+    provider: AIProviderName | None = Field(
         default=None,
         description="AI provider to use. If omitted, the server default is used.",
     )
@@ -33,11 +33,7 @@ class ParaphraseResponse(BaseModel):
 
 
 class ProviderResult(BaseModel):
-    text: str | None = None
+    text: str
     provider: str
     model: str
     error: str | None = None
-
-
-class ParaphraseComparisonResponse(BaseModel):
-    results: list[ProviderResult]

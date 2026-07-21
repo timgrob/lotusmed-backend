@@ -1,25 +1,14 @@
 from anthropic import APIError, AsyncAnthropic
 
-from src.core.config import get_settings
+from src.agents.agentic import AIProvider
 from src.core.exceptions import UpstreamAIError
 
-settings = get_settings()
 
-client = (
-    AsyncAnthropic(
-        api_key=settings.ANTHROPIC_API_KEY.get_secret_value(),
-        timeout=60.0,
-        max_retries=2,
-    )
-    if settings.ANTHROPIC_API_KEY
-    else None
-)
-
-
-class AnthropicGenerator:
-    def __init__(self, client: AsyncAnthropic, model: str) -> None:
-        self._client = client
-        self.model = model
+class AnthropicAgent:
+    def __init__(self, api_key: str, model: str) -> None:
+        self._client = AsyncAnthropic(api_key=api_key, timeout=60.0, max_retries=2)
+        self.model: str = model
+        self.provider: str = AIProvider.ANTHROPIC
 
     async def generate(self, instructions: str, text: str) -> str:
         try:

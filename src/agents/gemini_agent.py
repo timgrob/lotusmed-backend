@@ -2,22 +2,15 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
-from src.core.config import get_settings
+from src.agents.agentic import AIProvider
 from src.core.exceptions import UpstreamAIError
 
-settings = get_settings()
 
-client = (
-    genai.Client(api_key=settings.GEMINI_API_KEY.get_secret_value())
-    if settings.GEMINI_API_KEY
-    else None
-)
-
-
-class GeminiGenerator:
-    def __init__(self, client: genai.Client, model: str) -> None:
-        self._client = client
+class GeminiAgent:
+    def __init__(self, api_key: str, model: str) -> None:
+        self._client = genai.Client(api_key=api_key)
         self.model = model
+        self.provider = AIProvider.GEMINI
 
     async def generate(self, instructions: str, text: str) -> str:
         try:
@@ -32,4 +25,5 @@ class GeminiGenerator:
         output = response.text or ""
         if not output:
             raise UpstreamAIError("Gemini did not return any text")
+
         return output
