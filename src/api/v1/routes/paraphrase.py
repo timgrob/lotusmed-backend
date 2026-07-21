@@ -60,6 +60,11 @@ async def compare_providers(
                 detail="Provider returned no text",
             )
 
-        responses.append(res)
+        response = ParaphraseResponse(
+            text=res.text,
+            provider=res.provider,
+            model=res.model,
+        )
+        responses.append(response)
 
     return responses

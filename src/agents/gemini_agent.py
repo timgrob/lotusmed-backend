@@ -9,8 +9,8 @@ from src.core.exceptions import UpstreamAIError
 class GeminiAgent:
     def __init__(self, api_key: str, model: str) -> None:
         self._client = genai.Client(api_key=api_key)
-        self.model = model
-        self.provider = AIProvider.GEMINI
+        self.model: str = model
+        self.provider: AIProvider = AIProvider.GEMINI
 
     async def generate(self, instructions: str, text: str) -> str:
         try:
