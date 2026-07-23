@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from src.core.exceptions import (
     AlreadyExistsError,
+    InvalidFileError,
     NotFoundError,
     ProviderNotConfiguredError,
     UpstreamAIError,
@@ -35,6 +36,12 @@ async def provider_not_configured_handler(
     )
 
 
+async def invalid_file_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(NotFoundError, not_found_handler)
     app.add_exception_handler(AlreadyExistsError, already_exists_handler)
@@ -42,3 +49,4 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(
         ProviderNotConfiguredError, provider_not_configured_handler
     )
+    app.add_exception_handler(InvalidFileError, invalid_file_handler)

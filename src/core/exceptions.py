@@ -20,3 +20,7 @@ class UpstreamAIError(Exception):
 
 class ProviderNotConfiguredError(Exception):
     """Raised when a requested AI provider has no API key configured."""
+
+
+class InvalidFileError(Exception):
+    """Raised when an uploaded file fails validation."""
