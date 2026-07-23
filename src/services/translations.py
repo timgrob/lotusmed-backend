@@ -2,7 +2,7 @@ import asyncio
 
 from src.agents.agentic import Agentic, AIProvider
 from src.core.exceptions import ProviderNotConfiguredError
-from src.prompts import load_prompt
+from src.prompts import DocumentType, load_prompt
 from src.schemas.paraphrase import (
     ParaphraseRequest,
     ParaphraseResponse,
@@ -58,7 +58,7 @@ class TranslationService:
             else ""
         )
         parts = (
-            load_prompt("medical_translation.md"),
+            load_prompt(DocumentType.MEDICAL_TRANSLATION.filename),
             language_instruction,
             project_instructions,
         )

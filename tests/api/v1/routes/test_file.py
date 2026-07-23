@@ -8,8 +8,6 @@ import src.prompts
 
 pytestmark = pytest.mark.anyio
 
-UPLOAD_URL = "/api/v1/file/upload"
-
 
 @pytest.fixture
 def prompts_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
@@ -17,42 +15,46 @@ def prompts_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
-async def test_upload_markdown_succeeds(client: AsyncClient, prompts_dir: Path):
-    content = b"# Title\n\nSome prompt body."
+async def test_upload_translation_succeeds(client: AsyncClient, prompts_dir: Path):
+    content = b"# Translation prompt"
 
     response = await client.post(
-        UPLOAD_URL, files={"file": ("new_prompt.md", content, "text/markdown")}
+        "/api/v1/file/upload/medical_translation",
+        files={"file": ("anything.md", content, "text/markdown")},
     )
 
-    assert response.status_code == status.HTTP_201_CREATED
-    assert response.json() == {"filename": "new_prompt.md", "size": len(content)}
-    assert (prompts_dir / "new_prompt.md").read_bytes() == content
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "document_type": "medical_translation",
+        "size": len(content),
+    }
+    assert (prompts_dir / "medical_translation.md").read_bytes() == content
 
 
-async def test_upload_txt_succeeds(client: AsyncClient, prompts_dir: Path):
+async def test_upload_infographic_succeeds(client: AsyncClient, prompts_dir: Path):
     response = await client.post(
-        UPLOAD_URL, files={"file": ("notes.txt", b"plain text", "text/plain")}
+        "/api/v1/file/upload/medical_infographic",
+        files={"file": ("x.md", b"# Infographic", "text/markdown")},
     )
 
-    assert response.status_code == status.HTTP_201_CREATED
-    assert (prompts_dir / "notes.txt").exists()
+    assert response.status_code == status.HTTP_200_OK
+    assert (prompts_dir / "medical_infographic.md").exists()
 
 
-async def test_upload_disallowed_extension_returns_400(
-    client: AsyncClient, prompts_dir: Path
-):
+async def test_upload_unknown_type_returns_422(client: AsyncClient, prompts_dir: Path):
     response = await client.post(
-        UPLOAD_URL, files={"file": ("evil.pdf", b"%PDF-1.4", "application/pdf")}
+        "/api/v1/file/upload/medical_haiku",
+        files={"file": ("x.md", b"content", "text/markdown")},
     )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert not any(prompts_dir.iterdir())
 
 
 async def test_upload_non_utf8_returns_400(client: AsyncClient, prompts_dir: Path):
     response = await client.post(
-        UPLOAD_URL,
-        files={"file": ("bad.md", b"\xff\xfe\x00binary", "text/markdown")},
+        "/api/v1/file/upload/medical_translation",
+        files={"file": ("x.md", b"\xff\xfe\x00binary", "text/markdown")},
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -61,34 +63,22 @@ async def test_upload_non_utf8_returns_400(client: AsyncClient, prompts_dir: Pat
 
 async def test_upload_empty_returns_400(client: AsyncClient, prompts_dir: Path):
     response = await client.post(
-        UPLOAD_URL, files={"file": ("empty.md", b"", "text/markdown")}
+        "/api/v1/file/upload/medical_translation",
+        files={"file": ("x.md", b"", "text/markdown")},
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-async def test_upload_duplicate_returns_409(client: AsyncClient, prompts_dir: Path):
-    (prompts_dir / "dup.md").write_text("existing", encoding="utf-8")
+async def test_upload_overwrites_existing(client: AsyncClient, prompts_dir: Path):
+    (prompts_dir / "medical_translation.md").write_text("old", encoding="utf-8")
 
     response = await client.post(
-        UPLOAD_URL, files={"file": ("dup.md", b"new content", "text/markdown")}
+        "/api/v1/file/upload/medical_translation",
+        files={"file": ("x.md", b"new content", "text/markdown")},
     )
 
-    assert response.status_code == status.HTTP_409_CONFLICT
-    # The existing file is untouched.
-    assert (prompts_dir / "dup.md").read_text(encoding="utf-8") == "existing"
-
-
-async def test_upload_path_traversal_is_contained(
-    client: AsyncClient, prompts_dir: Path
-):
-    response = await client.post(
-        UPLOAD_URL,
-        files={"file": ("../../evil.md", b"payload", "text/markdown")},
-    )
-
-    assert response.status_code == status.HTTP_201_CREATED
-    assert response.json()["filename"] == "evil.md"
-    assert (prompts_dir / "evil.md").exists()
-    # Nothing escaped the prompts directory.
-    assert not (prompts_dir.parent.parent / "evil.md").exists()
+    assert response.status_code == status.HTTP_200_OK
+    assert (prompts_dir / "medical_translation.md").read_text(
+        encoding="utf-8"
+    ) == "new content"
