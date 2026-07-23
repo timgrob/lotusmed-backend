@@ -1,7 +1,5 @@
 from enum import StrEnum
-from typing import Literal, Protocol
-
-AIProviderName = Literal["openai", "anthropic", "gemini"]
+from typing import Protocol
 
 
 class AIProvider(StrEnum):

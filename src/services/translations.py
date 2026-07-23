@@ -5,57 +5,43 @@ from src.core.exceptions import ProviderNotConfiguredError
 from src.prompts import load_prompt
 from src.schemas.paraphrase import (
     ParaphraseRequest,
+    ParaphraseResponse,
     ProviderResult,
 )
 
 
 class TranslationService:
-    def __init__(self, agents: dict[str, Agentic]) -> None:
-        self._agents: dict[str, Agentic] = agents
+    def __init__(
+        self, agents: dict[AIProvider, Agentic], default_provider: AIProvider
+    ) -> None:
+        self._agents = agents
+        self._default_provider = default_provider
 
-    async def paraphrase(self, request: ParaphraseRequest) -> ProviderResult:
-        provider_name = request.provider if request.provider else AIProvider.OPENAI
-
-        try:
-            agent = self._agents.get(provider_name)
-        except Exception as exc:
-            raise ProviderNotConfiguredError(
-                "Agent provider is not configured"
-            ) from exc
-
-        agent = self._agents.get(provider_name)
+    async def paraphrase(self, request: ParaphraseRequest) -> ParaphraseResponse:
+        provider = request.provider or self._default_provider
+        agent = self._agents.get(provider)
         if agent is None:
-            raise ProviderNotConfiguredError("Agent provider is not configured")
+            raise ProviderNotConfiguredError(f"Provider is not configured: {provider}")
 
-        try:
-            text = await agent.generate(self._build_instructions(request), request.text)
-            return ProviderResult(text=text, provider=agent.provider, model=agent.model)
-        except Exception as exc:
-            return ProviderResult(
-                text="", provider=agent.provider, model=agent.model, error=str(exc)
-            )
+        text = await agent.generate(self._build_instructions(request), request.text)
+        return ParaphraseResponse(text=text, provider=agent.provider, model=agent.model)
 
     async def paraphrase_all(self, request: ParaphraseRequest) -> list[ProviderResult]:
         instructions = self._build_instructions(request)
+        agents = list(self._agents.values())
         outcomes = await asyncio.gather(
-            *(
-                self._agents[provider].generate(instructions, request.text)
-                for provider in AIProvider
-            ),
+            *(agent.generate(instructions, request.text) for agent in agents),
             return_exceptions=True,
         )
         return [
             ProviderResult(
-                text="",
-                provider=provider,
-                model=self._agents[provider].model,
-                error=str(outcome),
+                provider=agent.provider, model=agent.model, error=str(outcome)
             )
             if isinstance(outcome, BaseException)
             else ProviderResult(
-                provider=provider, model=self._agents[provider].model, text=outcome
+                text=outcome, provider=agent.provider, model=agent.model
             )
-            for provider, outcome in zip(AIProvider, outcomes, strict=True)
+            for agent, outcome in zip(agents, outcomes, strict=True)
         ]
 
     @staticmethod

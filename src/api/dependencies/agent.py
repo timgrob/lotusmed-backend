@@ -1,46 +1,44 @@
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends
 
-from src.agents.agentic import AIProvider, Agentic
+from src.agents.agentic import Agentic, AIProvider
 from src.agents.anthropic_agent import AnthropicAgent
 from src.agents.gemini_agent import GeminiAgent
 from src.agents.openai_agent import OpenaiAgent
-from src.api.dependencies import SettingsDep
+from src.core.config import get_settings
 
 
-def get_anthropic_agent(settings: SettingsDep) -> AnthropicAgent:
-    return AnthropicAgent(
-        api_key=settings.ANTHROPIC_API_KEY.get_secret_value(),
-        model=settings.ANTHROPIC_MODEL,
-    )
+@lru_cache
+def _build_agents() -> dict[AIProvider, Agentic]:
+    """Construct one agent per configured provider, once per process.
 
-
-def get_gemini_agent(settings: SettingsDep) -> GeminiAgent:
-    return GeminiAgent(
-        api_key=settings.GEMINI_API_KEY.get_secret_value(), model=settings.GEMINI_MODEL
-    )
-
-
-def get_openai_agent(settings: SettingsDep) -> OpenaiAgent:
-    return OpenaiAgent(
-        api_key=settings.OPENAI_API_KEY.get_secret_value(), model=settings.OPENAI_MODEL
-    )
-
-
-async def get_all_agents(
-    anthropic: Annotated[AnthropicAgent, Depends(get_anthropic_agent)],
-    gemini: Annotated[GeminiAgent, Depends(get_gemini_agent)],
-    openai: Annotated[OpenaiAgent, Depends(get_openai_agent)],
-) -> dict[str, Agentic]:
-    return {
-        AIProvider.ANTHROPIC: anthropic,
-        AIProvider.GEMINI: gemini,
-        AIProvider.OPENAI: openai,
+    OpenAI is always present (its API key is required); Anthropic and Gemini
+    are included only when their API keys are configured.
+    """
+    settings = get_settings()
+    agents: dict[AIProvider, Agentic] = {
+        AIProvider.OPENAI: OpenaiAgent(
+            api_key=settings.OPENAI_API_KEY.get_secret_value(),
+            model=settings.OPENAI_MODEL,
+        )
     }
+    if settings.ANTHROPIC_API_KEY is not None:
+        agents[AIProvider.ANTHROPIC] = AnthropicAgent(
+            api_key=settings.ANTHROPIC_API_KEY.get_secret_value(),
+            model=settings.ANTHROPIC_MODEL,
+        )
+    if settings.GEMINI_API_KEY is not None:
+        agents[AIProvider.GEMINI] = GeminiAgent(
+            api_key=settings.GEMINI_API_KEY.get_secret_value(),
+            model=settings.GEMINI_MODEL,
+        )
+    return agents
 
 
-AnthropicAgentDep = Annotated[AnthropicAgent, Depends(get_anthropic_agent)]
-GeminiAgentDep = Annotated[GeminiAgent, Depends(get_gemini_agent)]
-OpenaiAgenttDep = Annotated[OpenaiAgent, Depends(get_openai_agent)]
-AllAgentsDep = Annotated[dict[str, Agentic], Depends(get_all_agents)]
+def get_agents() -> dict[AIProvider, Agentic]:
+    return _build_agents()
+
+
+AllAgentsDep = Annotated[dict[AIProvider, Agentic], Depends(get_agents)]
