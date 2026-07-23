@@ -4,7 +4,8 @@ from unittest.mock import AsyncMock
 import pytest
 from openai import OpenAIError
 
-from src.agents.openai_agent import OpenAIGenerator
+from src.agents.agentic import AIProvider
+from src.agents.openai_agent import OpenaiAgent
 from src.core.exceptions import UpstreamAIError
 
 pytestmark = pytest.mark.anyio
@@ -12,13 +13,22 @@ pytestmark = pytest.mark.anyio
 
 def make_generator(
     output_text: str | None = None, error: Exception | None = None
-) -> tuple[OpenAIGenerator, AsyncMock]:
+) -> tuple[OpenaiAgent, AsyncMock]:
     client = AsyncMock()
     if error is not None:
         client.responses.create.side_effect = error
     else:
         client.responses.create.return_value = SimpleNamespace(output_text=output_text)
-    return OpenAIGenerator(client=client, model="test-model"), client
+    agent = OpenaiAgent(api_key="test-key", model="test-model")
+    agent._client = client
+    return agent, client
+
+
+def test_provider_attribute():
+    agent, _ = make_generator(output_text="anything")
+
+    assert agent.provider is AIProvider.OPENAI
+    assert agent.model == "test-model"
 
 
 async def test_generate_returns_text():

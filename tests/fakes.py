@@ -1,12 +1,17 @@
-class FakeGenerator:
-    """In-memory TextGenerator capturing the arguments it was called with."""
+from src.agents.agentic import AIProvider
+
+
+class FakeAgent:
+    """In-memory Agentic implementation capturing the arguments it was called with."""
 
     def __init__(
         self,
+        provider: AIProvider = AIProvider.OPENAI,
         model: str = "fake-model",
         text: str = "Plain explanation.",
         error: Exception | None = None,
     ) -> None:
+        self.provider = provider
         self.model = model
         self.text = text
         self.error = error

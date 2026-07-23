@@ -4,7 +4,8 @@ from unittest.mock import AsyncMock
 import pytest
 from google.genai.errors import APIError
 
-from src.agents.gemini_agent import GeminiGenerator
+from src.agents.agentic import AIProvider
+from src.agents.gemini_agent import GeminiAgent
 from src.core.exceptions import UpstreamAIError
 
 pytestmark = pytest.mark.anyio
@@ -22,13 +23,22 @@ class FakeAPIError(APIError):
 
 def make_generator(
     text: str | None = None, error: Exception | None = None
-) -> tuple[GeminiGenerator, AsyncMock]:
+) -> tuple[GeminiAgent, AsyncMock]:
     client = AsyncMock()
     if error is not None:
         client.aio.models.generate_content.side_effect = error
     else:
         client.aio.models.generate_content.return_value = SimpleNamespace(text=text)
-    return GeminiGenerator(client=client, model="gemini-test"), client
+    agent = GeminiAgent(api_key="test-key", model="gemini-test")
+    agent._client = client
+    return agent, client
+
+
+def test_provider_attribute():
+    agent, _ = make_generator(text="anything")
+
+    assert agent.provider is AIProvider.GEMINI
+    assert agent.model == "gemini-test"
 
 
 async def test_generate_returns_text():

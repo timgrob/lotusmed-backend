@@ -4,7 +4,8 @@ from unittest.mock import AsyncMock
 import pytest
 from anthropic import APIError
 
-from src.agents.anthropic_agent import AnthropicGenerator
+from src.agents.agentic import AIProvider
+from src.agents.anthropic_agent import AnthropicAgent
 from src.core.exceptions import UpstreamAIError
 
 pytestmark = pytest.mark.anyio
@@ -22,7 +23,7 @@ def make_generator(
     content: list | None = None,
     stop_reason: str = "end_turn",
     error: Exception | None = None,
-) -> tuple[AnthropicGenerator, AsyncMock]:
+) -> tuple[AnthropicAgent, AsyncMock]:
     client = AsyncMock()
     if error is not None:
         client.messages.create.side_effect = error
@@ -30,7 +31,16 @@ def make_generator(
         client.messages.create.return_value = SimpleNamespace(
             stop_reason=stop_reason, content=content or []
         )
-    return AnthropicGenerator(client=client, model="claude-test"), client
+    agent = AnthropicAgent(api_key="test-key", model="claude-test")
+    agent._client = client
+    return agent, client
+
+
+def test_provider_attribute():
+    agent, _ = make_generator(content=[])
+
+    assert agent.provider is AIProvider.ANTHROPIC
+    assert agent.model == "claude-test"
 
 
 async def test_generate_returns_text():
