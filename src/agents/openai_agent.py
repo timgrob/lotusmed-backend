@@ -18,7 +18,9 @@ class OpenaiAgent:
                 input=text,
             )
         except OpenAIError as exc:
-            raise UpstreamAIError("Failed to generate text with OpenAI") from exc
+            raise UpstreamAIError(
+                f"Failed to generate text with OpenAI: {exc}"
+            ) from exc
 
         if not response.output_text:
             raise UpstreamAIError("OpenAI did not return any text")

@@ -19,7 +19,9 @@ class AnthropicAgent:
                 messages=[{"role": "user", "content": text}],
             )
         except APIError as exc:
-            raise UpstreamAIError("Failed to generate text with Anthropic") from exc
+            raise UpstreamAIError(
+                f"Failed to generate text with Anthropic: {exc}"
+            ) from exc
 
         if response.stop_reason == "refusal":
             raise UpstreamAIError("Anthropic declined to generate text")

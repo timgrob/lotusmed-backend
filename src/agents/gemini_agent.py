@@ -20,7 +20,9 @@ class GeminiAgent:
                 config=types.GenerateContentConfig(system_instruction=instructions),
             )
         except APIError as exc:
-            raise UpstreamAIError("Failed to generate text with Gemini") from exc
+            raise UpstreamAIError(
+                f"Failed to generate text with Gemini: {exc}"
+            ) from exc
 
         output = response.text or ""
         if not output:
