@@ -24,3 +24,7 @@ class ProviderNotConfiguredError(Exception):
 
 class InvalidFileError(Exception):
     """Raised when an uploaded file fails validation."""
+
+
+class InfographicRenderError(Exception):
+    """Raised when rendering infographic HTML to an image fails."""

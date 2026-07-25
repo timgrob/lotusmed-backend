@@ -24,3 +24,20 @@ class FakeAgent:
         if self.error is not None:
             raise self.error
         return self.text
+
+
+class FakeRenderer:
+    """In-memory Renderer capturing the HTML it was asked to render."""
+
+    def __init__(
+        self, image: bytes = b"png-bytes", error: Exception | None = None
+    ) -> None:
+        self.image = image
+        self.error = error
+        self.html: str | None = None
+
+    async def render(self, html: str) -> bytes:
+        self.html = html
+        if self.error is not None:
+            raise self.error
+        return self.image

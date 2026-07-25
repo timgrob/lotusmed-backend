@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from src.core.exceptions import (
     AlreadyExistsError,
+    InfographicRenderError,
     InvalidFileError,
     NotFoundError,
     ProviderNotConfiguredError,
@@ -42,6 +43,13 @@ async def invalid_file_handler(request: Request, exc: Exception) -> JSONResponse
     )
 
 
+async def infographic_render_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": str(exc)},
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(NotFoundError, not_found_handler)
     app.add_exception_handler(AlreadyExistsError, already_exists_handler)
@@ -50,3 +58,4 @@ def register_exception_handlers(app: FastAPI) -> None:
         ProviderNotConfiguredError, provider_not_configured_handler
     )
     app.add_exception_handler(InvalidFileError, invalid_file_handler)
+    app.add_exception_handler(InfographicRenderError, infographic_render_handler)
