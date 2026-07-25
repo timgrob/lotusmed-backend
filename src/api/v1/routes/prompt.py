@@ -2,19 +2,19 @@ from fastapi import APIRouter, UploadFile, status
 
 from src.core.exceptions import InvalidFileError
 from src.prompts import MAX_PROMPT_FILE_BYTES, DocumentType, save_prompt
-from src.schemas.file import FileUploadResponse
+from src.schemas.prompt import PromptUploadResponse
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
 
 
 @router.post(
     "/upload/{document_type}",
-    response_model=FileUploadResponse,
+    response_model=PromptUploadResponse,
     status_code=status.HTTP_200_OK,
 )
 async def upload_file(
     document_type: DocumentType, file: UploadFile
-) -> FileUploadResponse:
+) -> PromptUploadResponse:
     """Upload a prompt file and set it as the given document type's prompt."""
     if file.size is not None and file.size > MAX_PROMPT_FILE_BYTES:
         raise InvalidFileError("File exceeds the maximum allowed size")
@@ -31,4 +31,4 @@ async def upload_file(
         raise InvalidFileError("File must be valid UTF-8 text") from exc
 
     save_prompt(document_type, content)
-    return FileUploadResponse(document_type=document_type, size=len(raw))
+    return PromptUploadResponse(document_type=document_type, size=len(raw))
