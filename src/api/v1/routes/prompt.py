@@ -4,7 +4,7 @@ from src.core.exceptions import InvalidFileError
 from src.prompts import MAX_PROMPT_FILE_BYTES, DocumentType, save_prompt
 from src.schemas.file import FileUploadResponse
 
-router = APIRouter(prefix="/file", tags=["file"])
+router = APIRouter(prefix="/prompt", tags=["prompt"])
 
 
 @router.post(
