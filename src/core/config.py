@@ -20,8 +20,7 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: str = Field(default="dev", alias="ENVIRONMENT")
 
-    DEFAULT_AI_PROVIDER: AIProvider = AIProvider.OPENAI
-    OPENAI_API_KEY: SecretStr
+    OPENAI_API_KEY: SecretStr | None = None
     OPENAI_MODEL: str = "gpt-5.5"
     ANTHROPIC_API_KEY: SecretStr | None = None
     ANTHROPIC_MODEL: str = "claude-opus-4-8"
@@ -34,6 +33,14 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore",
     )
+
+    def default_models(self) -> dict[AIProvider, str]:
+        """Map each provider to its configured default model."""
+        return {
+            AIProvider.OPENAI: self.OPENAI_MODEL,
+            AIProvider.ANTHROPIC: self.ANTHROPIC_MODEL,
+            AIProvider.GEMINI: self.GEMINI_MODEL,
+        }
 
 
 @lru_cache

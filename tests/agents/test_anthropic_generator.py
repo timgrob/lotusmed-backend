@@ -31,7 +31,7 @@ def make_generator(
         client.messages.create.return_value = SimpleNamespace(
             stop_reason=stop_reason, content=content or []
         )
-    agent = AnthropicAgent(api_key="test-key", model="claude-test")
+    agent = AnthropicAgent(api_key="test-key")
     agent._client = client
     return agent, client
 
@@ -40,7 +40,6 @@ def test_provider_attribute():
     agent, _ = make_generator(content=[])
 
     assert agent.provider is AIProvider.ANTHROPIC
-    assert agent.model == "claude-test"
 
 
 async def test_generate_returns_text():
@@ -50,7 +49,9 @@ async def test_generate_returns_text():
     ]
     generator, client = make_generator(content=blocks)
 
-    result = await generator.generate("Some instructions.", "Myocardial infarction.")
+    result = await generator.generate(
+        "Some instructions.", "Myocardial infarction.", "claude-test"
+    )
 
     assert result == "Plain explanation."
     kwargs = client.messages.create.call_args.kwargs
@@ -63,7 +64,9 @@ async def test_generate_maps_sdk_error():
     generator, _ = make_generator(error=FakeAPIError())
 
     with pytest.raises(UpstreamAIError):
-        await generator.generate("Some instructions.", "Myocardial infarction.")
+        await generator.generate(
+            "Some instructions.", "Myocardial infarction.", "claude-test"
+        )
 
 
 async def test_generate_refusal():
@@ -71,11 +74,15 @@ async def test_generate_refusal():
     generator, _ = make_generator(content=blocks, stop_reason="refusal")
 
     with pytest.raises(UpstreamAIError):
-        await generator.generate("Some instructions.", "Myocardial infarction.")
+        await generator.generate(
+            "Some instructions.", "Myocardial infarction.", "claude-test"
+        )
 
 
 async def test_generate_empty_output():
     generator, _ = make_generator(content=[])
 
     with pytest.raises(UpstreamAIError):
-        await generator.generate("Some instructions.", "Myocardial infarction.")
+        await generator.generate(
+            "Some instructions.", "Myocardial infarction.", "claude-test"
+        )

@@ -29,7 +29,7 @@ def make_generator(
         client.aio.models.generate_content.side_effect = error
     else:
         client.aio.models.generate_content.return_value = SimpleNamespace(text=text)
-    agent = GeminiAgent(api_key="test-key", model="gemini-test")
+    agent = GeminiAgent(api_key="test-key")
     agent._client = client
     return agent, client
 
@@ -38,13 +38,14 @@ def test_provider_attribute():
     agent, _ = make_generator(text="anything")
 
     assert agent.provider is AIProvider.GEMINI
-    assert agent.model == "gemini-test"
 
 
 async def test_generate_returns_text():
     generator, client = make_generator(text="Plain explanation.")
 
-    result = await generator.generate("Some instructions.", "Myocardial infarction.")
+    result = await generator.generate(
+        "Some instructions.", "Myocardial infarction.", "gemini-test"
+    )
 
     assert result == "Plain explanation."
     kwargs = client.aio.models.generate_content.call_args.kwargs
@@ -57,11 +58,15 @@ async def test_generate_maps_sdk_error():
     generator, _ = make_generator(error=FakeAPIError())
 
     with pytest.raises(UpstreamAIError):
-        await generator.generate("Some instructions.", "Myocardial infarction.")
+        await generator.generate(
+            "Some instructions.", "Myocardial infarction.", "gemini-test"
+        )
 
 
 async def test_generate_empty_output():
     generator, _ = make_generator(text=None)
 
     with pytest.raises(UpstreamAIError):
-        await generator.generate("Some instructions.", "Myocardial infarction.")
+        await generator.generate(
+            "Some instructions.", "Myocardial infarction.", "gemini-test"
+        )

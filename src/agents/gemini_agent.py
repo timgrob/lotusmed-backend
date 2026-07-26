@@ -7,15 +7,14 @@ from src.core.exceptions import UpstreamAIError
 
 
 class GeminiAgent:
-    def __init__(self, api_key: str, model: str) -> None:
+    def __init__(self, api_key: str) -> None:
         self._client = genai.Client(api_key=api_key)
-        self.model: str = model
         self.provider: AIProvider = AIProvider.GEMINI
 
-    async def generate(self, instructions: str, text: str) -> str:
+    async def generate(self, instructions: str, text: str, model: str) -> str:
         try:
             response = await self._client.aio.models.generate_content(
-                model=self.model,
+                model=model,
                 contents=text,
                 config=types.GenerateContentConfig(system_instruction=instructions),
             )

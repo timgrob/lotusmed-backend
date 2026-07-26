@@ -11,7 +11,7 @@ def get_translation_service(
     agents: AllAgentsDep, settings: SettingsDep
 ) -> TranslationService:
     return TranslationService(
-        agents=agents, default_provider=settings.DEFAULT_AI_PROVIDER
+        agents=agents, default_models=settings.default_models()
     )
 
 

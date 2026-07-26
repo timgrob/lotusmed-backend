@@ -21,7 +21,7 @@ def get_infographic_service(
 ) -> InfographicService:
     return InfographicService(
         agents=agents,
-        default_provider=settings.DEFAULT_AI_PROVIDER,
+        default_models=settings.default_models(),
         renderer=renderer,
     )
 

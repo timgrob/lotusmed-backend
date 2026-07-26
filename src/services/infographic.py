@@ -4,7 +4,12 @@ import base64
 from src.agents.agentic import Agentic, AIProvider
 from src.core.exceptions import ProviderNotConfiguredError
 from src.prompts import DocumentType, load_prompt
-from src.schemas.infographic import InfographicProviderResult, InfographicRequest
+from src.schemas.infographic import (
+    InfographicMultipleRequest,
+    InfographicProviderResult,
+    InfographicRequest,
+)
+from src.schemas.provider import Provider
 from src.services.html_renderer import Renderer
 
 _HTML_OUTPUT_INSTRUCTION = (
@@ -20,57 +25,73 @@ class InfographicService:
     def __init__(
         self,
         agents: dict[AIProvider, Agentic],
-        default_provider: AIProvider,
+        default_models: dict[AIProvider, str],
         renderer: Renderer,
     ) -> None:
         self._agents = agents
-        self._default_provider = default_provider
+        self._default_models = default_models
         self._renderer = renderer
 
-    async def generate(
-        self, request: InfographicRequest
-    ) -> tuple[bytes, AIProvider, str]:
-        provider = request.provider or self._default_provider
-        agent = self._agents.get(provider)
+    async def generate(self, request: InfographicRequest) -> tuple[bytes, Provider]:
+        provider = request.provider
+        agent = self._agents.get(provider.name)
         if agent is None:
-            raise ProviderNotConfiguredError(f"Provider is not configured: {provider}")
+            raise ProviderNotConfiguredError(
+                f"Provider is not configured: {provider.name}"
+            )
 
-        image = await self._render_infographic(agent, request)
-        return image, agent.provider, agent.model
+        instructions = self._build_instructions(request.instructions)
+        image = await self._render_infographic(
+            agent, instructions, request.text, provider.model
+        )
+        return image, provider
 
     async def generate_all(
-        self, request: InfographicRequest
+        self, request: InfographicMultipleRequest
     ) -> list[InfographicProviderResult]:
-        agents = list(self._agents.values())
-        outcomes = await asyncio.gather(
-            *(self._render_infographic(agent, request) for agent in agents),
-            return_exceptions=True,
-        )
+        targets = request.targets or self._default_targets()
+        instructions = self._build_instructions(request.instructions)
+
+        async def run_one(target: Provider) -> InfographicProviderResult:
+            agent = self._agents.get(target.name)
+            if agent is None:
+                return InfographicProviderResult(
+                    provider=target, error="Provider is not configured"
+                )
+            try:
+                image = await self._render_infographic(
+                    agent, instructions, request.text, target.model
+                )
+                return InfographicProviderResult(
+                    image_base64=base64.b64encode(image).decode("ascii"),
+                    provider=target,
+                )
+            except Exception as exc:
+                return InfographicProviderResult(
+                    provider=target, error=f"Error: {exc}"
+                )
+
+        return list(await asyncio.gather(*(run_one(t) for t in targets)))
+
+    def _default_targets(self) -> list[Provider]:
+        """Every configured provider paired with its default model."""
         return [
-            InfographicProviderResult(
-                provider=agent.provider, model=agent.model, error=str(outcome)
-            )
-            if isinstance(outcome, BaseException)
-            else InfographicProviderResult(
-                image_base64=base64.b64encode(outcome).decode("ascii"),
-                provider=agent.provider,
-                model=agent.model,
-            )
-            for agent, outcome in zip(agents, outcomes, strict=True)
+            Provider(name=provider, model=self._default_models[provider])
+            for provider in self._agents
         ]
 
     async def _render_infographic(
-        self, agent: Agentic, request: InfographicRequest
+        self, agent: Agentic, instructions: str, text: str, model: str
     ) -> bytes:
-        html = await agent.generate(self._build_instructions(request), request.text)
+        html = await agent.generate(instructions, text, model)
         return await self._renderer.render(self._strip_code_fence(html))
 
     @staticmethod
-    def _build_instructions(request: InfographicRequest) -> str:
+    def _build_instructions(instructions: str | None) -> str:
         project_instructions = (
             "Additional infographic rules from the application owner:\n"
-            f"{request.instructions}"
-            if request.instructions
+            f"{instructions}"
+            if instructions
             else ""
         )
         parts = (
