@@ -1,10 +1,11 @@
 from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints
+
 from src.schemas.provider import Provider
 
 
-class ParaphraseRequest(BaseModel):
+class InfographicRequest(BaseModel):
     text: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20_000)
     ]
@@ -13,18 +14,15 @@ class ParaphraseRequest(BaseModel):
         | None
     ) = Field(
         default=None,
-        description="Optional project-specific translation/paraphrasing rules.",
-    )
-    target_language: str | None = Field(
-        default=None,
-        description="Optional output language. If omitted, the source language is preserved.",
+        description="Optional project-specific infographic rules.",
     )
     provider: Provider = Field(
-        description="AI provider to use. If omitted, the default is used.",
+        default_factory=Provider,
+        description="(provider, model) target to render the infographic with.",
     )
 
 
-class ParaphraseMultipleRequest(BaseModel):
+class InfographicMultipleRequest(BaseModel):
     text: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20_000)
     ]
@@ -33,11 +31,7 @@ class ParaphraseMultipleRequest(BaseModel):
         | None
     ) = Field(
         default=None,
-        description="Optional project-specific translation/paraphrasing rules.",
-    )
-    target_language: str | None = Field(
-        default=None,
-        description="Optional output language. If omitted, the source language is preserved.",
+        description="Optional project-specific infographic rules.",
     )
     targets: list[Provider] = Field(
         default_factory=list,
@@ -48,7 +42,7 @@ class ParaphraseMultipleRequest(BaseModel):
     )
 
 
-class ProviderResult(BaseModel):
-    text: str | None = None
+class InfographicProviderResult(BaseModel):
+    image_base64: str | None = None
     provider: Provider | None = None
     error: str | None = None

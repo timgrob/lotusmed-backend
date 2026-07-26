@@ -5,15 +5,14 @@ from src.core.exceptions import UpstreamAIError
 
 
 class OpenaiAgent:
-    def __init__(self, api_key: str, model: str) -> None:
+    def __init__(self, api_key: str) -> None:
         self._client = AsyncOpenAI(api_key=api_key, timeout=60.0, max_retries=2)
-        self.model = model
         self.provider = AIProvider.OPENAI
 
-    async def generate(self, instructions: str, text: str) -> str:
+    async def generate(self, instructions: str, text: str, model: str) -> str:
         try:
             response = await self._client.responses.create(
-                model=self.model,
+                model=model,
                 instructions=instructions,
                 input=text,
             )

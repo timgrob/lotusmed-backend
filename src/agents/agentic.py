@@ -9,7 +9,6 @@ class AIProvider(StrEnum):
 
 
 class Agentic(Protocol):
-    model: str
     provider: AIProvider
 
-    async def generate(self, instructions: str, text: str) -> str: ...
+    async def generate(self, instructions: str, text: str, model: str) -> str: ...

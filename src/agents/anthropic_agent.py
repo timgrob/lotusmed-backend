@@ -5,15 +5,14 @@ from src.core.exceptions import UpstreamAIError
 
 
 class AnthropicAgent:
-    def __init__(self, api_key: str, model: str) -> None:
+    def __init__(self, api_key: str) -> None:
         self._client = AsyncAnthropic(api_key=api_key, timeout=60.0, max_retries=2)
-        self.model: str = model
         self.provider: AIProvider = AIProvider.ANTHROPIC
 
-    async def generate(self, instructions: str, text: str) -> str:
+    async def generate(self, instructions: str, text: str, model: str) -> str:
         try:
             response = await self._client.messages.create(
-                model=self.model,
+                model=model,
                 max_tokens=16_000,
                 system=instructions,
                 messages=[{"role": "user", "content": text}],

@@ -29,5 +29,9 @@ COPY --from=builder /app/.venv .venv
 # Set up environment variables for production
 ENV PATH="/app/.venv/bin:$PATH"
 
+# Install the headless Chromium browser (and its system libraries) used to
+# render infographic HTML to PNG images.
+RUN playwright install --with-deps chromium
+
 # Start the application with Uvicorn in production mode, using environment variable references
 CMD ["uvicorn", "src.main:app", "--log-level", "info", "--host", "0.0.0.0" , "--port", "8080"]

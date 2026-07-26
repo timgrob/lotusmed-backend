@@ -19,7 +19,7 @@ async def test_upload_translation_succeeds(client: AsyncClient, prompts_dir: Pat
     content = b"# Translation prompt"
 
     response = await client.post(
-        "/api/v1/file/upload/medical_translation",
+        "/api/v1/prompt/upload/medical_translation",
         files={"file": ("anything.md", content, "text/markdown")},
     )
 
@@ -33,7 +33,7 @@ async def test_upload_translation_succeeds(client: AsyncClient, prompts_dir: Pat
 
 async def test_upload_infographic_succeeds(client: AsyncClient, prompts_dir: Path):
     response = await client.post(
-        "/api/v1/file/upload/medical_infographic",
+        "/api/v1/prompt/upload/medical_infographic",
         files={"file": ("x.md", b"# Infographic", "text/markdown")},
     )
 
@@ -43,7 +43,7 @@ async def test_upload_infographic_succeeds(client: AsyncClient, prompts_dir: Pat
 
 async def test_upload_unknown_type_returns_422(client: AsyncClient, prompts_dir: Path):
     response = await client.post(
-        "/api/v1/file/upload/medical_haiku",
+        "/api/v1/prompt/upload/medical_haiku",
         files={"file": ("x.md", b"content", "text/markdown")},
     )
 
@@ -53,7 +53,7 @@ async def test_upload_unknown_type_returns_422(client: AsyncClient, prompts_dir:
 
 async def test_upload_non_utf8_returns_400(client: AsyncClient, prompts_dir: Path):
     response = await client.post(
-        "/api/v1/file/upload/medical_translation",
+        "/api/v1/prompt/upload/medical_translation",
         files={"file": ("x.md", b"\xff\xfe\x00binary", "text/markdown")},
     )
 
@@ -63,7 +63,7 @@ async def test_upload_non_utf8_returns_400(client: AsyncClient, prompts_dir: Pat
 
 async def test_upload_empty_returns_400(client: AsyncClient, prompts_dir: Path):
     response = await client.post(
-        "/api/v1/file/upload/medical_translation",
+        "/api/v1/prompt/upload/medical_translation",
         files={"file": ("x.md", b"", "text/markdown")},
     )
 
@@ -74,7 +74,7 @@ async def test_upload_overwrites_existing(client: AsyncClient, prompts_dir: Path
     (prompts_dir / "medical_translation.md").write_text("old", encoding="utf-8")
 
     response = await client.post(
-        "/api/v1/file/upload/medical_translation",
+        "/api/v1/prompt/upload/medical_translation",
         files={"file": ("x.md", b"new content", "text/markdown")},
     )
 
